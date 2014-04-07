@@ -22,6 +22,7 @@ import org.apache.struts2.rest.DefaultHttpHeaders;
 import org.onebusaway.api.actions.api.ApiActionSupport;
 import org.onebusaway.api.model.transit.BeanFactoryV2;
 import org.onebusaway.api.model.transit.RouteV2Bean;
+import org.onebusaway.transit_data.model.AgencyWithCoverageBean;
 import org.onebusaway.transit_data.model.ListBean;
 import org.onebusaway.transit_data.model.RouteBean;
 import org.onebusaway.transit_data.services.TransitDataService;
@@ -34,6 +35,8 @@ public class RoutesForAgencyAction extends ApiActionSupport {
   private static final long serialVersionUID = 1L;
 
   private static final int V2 = 2;
+
+  private static final String all = "all";
 
   @Autowired
   private TransitDataService _service;
@@ -61,13 +64,25 @@ public class RoutesForAgencyAction extends ApiActionSupport {
     if (!isVersion(V2))
       return setUnknownVersionResponse();
 
-    ListBean<RouteBean> routes = _service.getRoutesForAgencyId(_id);
-
-    BeanFactoryV2 factory = getBeanFactoryV2();
     List<RouteV2Bean> beans = new ArrayList<RouteV2Bean>();
-    for (RouteBean route : routes.getList())
-      beans.add(factory.getRoute(route));
+    BeanFactoryV2 factory = getBeanFactoryV2();
 
-    return setOkResponse(factory.list(beans, false));
+    if (_id.equals(all)) {
+      for (AgencyWithCoverageBean agency : _service.getAgenciesWithCoverage()) {
+        ListBean<RouteBean> routes = _service.getRoutesForAgencyId(agency.getAgency().getId());
+
+        for (RouteBean route : routes.getList())
+          beans.add(factory.getRoute(route));
+      }
+
+      return setOkResponse(factory.list(beans, false));
+    } else {
+      ListBean<RouteBean> routes = _service.getRoutesForAgencyId(_id);
+
+      for (RouteBean route : routes.getList())
+        beans.add(factory.getRoute(route));
+
+      return setOkResponse(factory.list(beans, false));
+    }
   }
 }
